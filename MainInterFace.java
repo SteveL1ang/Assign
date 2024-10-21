@@ -1,336 +1,259 @@
 package student.information.management.system;
 
-import java.util.List;  // Import List instead of ArrayList
+import java.util.List;
 import java.util.ArrayList;
 import java.util.Random;
 import java.util.Scanner;
 import java.io.Console;
-import java.io.IOException;
+import java.sql.SQLException;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 public class MainInterFace {
-    private static final String USER_FILE = "users.txt";
+    private static final Logger logger = Logger.getLogger(MainInterFace.class.getName());
     private static UserDataManager userDataManager = new UserDataManager();
 
     public static void main(String[] args) {
-        List<User> list = null;  // Use List<User> here
         try {
-            list = userDataManager.readFromFile(USER_FILE);
-        } catch (IOException e) {
-            System.out.println("Error loading users from file: " + e.getMessage());
+            DBManager.getConnection(); // Initialize database connection
+            logger.info("Database connection established.");
+
+            Scanner sc = new Scanner(System.in);
+
+            while (true) {
+                System.out.println("\nWelcome to Student Information Management System");
+                System.out.println("Press 1: Login");
+                System.out.println("Press 2: Register");
+                System.out.println("Press 3: Forgot Password?");
+                System.out.println("Press 4: Exit the Program");
+                String choice = sc.next();
+
+                switch (choice) {
+                    case "1":
+                        login();
+                        break;
+                    case "2":
+                        register();
+                        break;
+                    case "3":
+                        forgetPassword();
+                        break;
+                    case "4":
+                        System.out.println("Thanks and bye!");
+                        return;
+                    default:
+                        System.out.println("Invalid choice. Please try again.");
+                }
+            }
+        } catch (SQLException e) {
+            logger.log(Level.SEVERE, "Database error", e);
+            System.out.println("A database error occurred. Please try again later.");
+        } finally {
+            DBManager.closeConnection();
+            logger.info("Database connection closed.");
         }
+    }
+
+    private static void login() {
         Scanner sc = new Scanner(System.in);
+        for (int i = 0; i < 3; i++) {
+            System.out.println("Please enter your username:");
+            String username = sc.next();
+            System.out.println("Please enter your password:");
+            String password = sc.next();
 
-        loop:
-        while (true) {
-            System.out.println();
-            System.out.println("Welcome to Student Information Management System");
-            System.out.println("Press 1: Login");
-            System.out.println("Press 2: Register");
-            System.out.println("Press 3: Forgot Password?");
-            System.out.println("Press 4: Exit the Program");
-            String choose = sc.next();
+            try {
+                if (userDataManager.authenticateUser(username, password)) {
+                    System.out.println("Login successful.");
+                    logger.info("User logged in: " + username);
+                    
+                    while (true) {
+                        String captcha = getCaptcha();
+                        System.out.println("Captcha: " + captcha);
+                        System.out.println("Please enter the captcha:");
+                        String userCaptcha = sc.next();
 
-            switch (choose) {
-                case "1":
-                    login(list);
-                    break;
-
-                case "2":
-                    register(list);
-                    break;
-
-                case "3":
-                    forgetPassword(list);
-                    break;
-
-                case "4":
-                    try {
-                        userDataManager.writeToFile(USER_FILE, list);  // Save using List<User>
-                    } catch (IOException e) {
-                        System.out.println("Error saving users to file: " + e.getMessage());
+                        if (userCaptcha.equalsIgnoreCase(captcha)) {
+                            System.out.println("Captcha correct.");
+                            StudentSystem ss = new StudentSystem();
+                            ss.StartSystem();
+                            return;
+                        } else {
+                            System.out.println("Captcha incorrect. Please try again.");
+                        }
                     }
-                    System.out.println("Thanks and bye!");
-                    break loop;
-
-                default:
-                    System.out.println("We don't have this choice");
-            }
-        }
-    }
-
-    private static void forgetPassword(List<User> list) {  // Change to List<User>
-        Scanner scanner = new Scanner(System.in);
-        System.out.println("Please enter a username: ");
-        String username = scanner.next();
-        boolean flag = contains(list, username);
-
-        if (!flag) {
-            System.out.println("Not a registered username, please register first");
-            return;
-        }
-
-        // find user information by index
-        int index = findIndex(list, username);
-        User user = list.get(index);
-       
-        System.out.println("Please enter your phone number: ");
-        String phoneNumber = scanner.next();
-
-        if (!user.getPhoneNumber().equals(phoneNumber)) {
-            System.out.println("Phone number not found, please register first");
-            return;
-        }
-
-        // all information correct
-        String password;
-        Console console = System.console();
-
-        while (true) {
-            if (console != null) {
-                char[] passwordArray = console.readPassword("Please enter a new password: ");
-                password = new String(passwordArray);
-
-                char[] againPasswordArray = console.readPassword("Please enter the password again: ");
-                String againPassword = new String(againPasswordArray);
-
-                if (password.equals(againPassword)) {
-                    System.out.println("Edit successful");
-                    break;
                 } else {
-                    System.out.println("The password you entered is not the same, please enter again:");
+                    System.out.println("Invalid username or password. Attempts remaining: " + (2 - i));
                 }
-            } else {
-                // Fallback to use Scanner if System.console() is not available (like in NetBeans)
-                System.out.println("Please enter a new password:");
-                password = scanner.next();
-
-                System.out.println("Please enter the password again:");
-                String againPassword = scanner.next();
-
-                if (password.equals(againPassword)) {
-                    System.out.println("Edit successfully");
-                    break;
-                } else {
-                    System.out.println("The password you entered is not the same, please enter again:");
-                }
+            } catch (SQLException e) {
+                logger.log(Level.SEVERE, "Error during login", e);
+                System.out.println("Error during login. Please try again.");
+                return;
             }
         }
-
-        user.setPassword(password);
+        System.out.println("Account locked after 3 unsuccessful attempts.");
+        logger.warning("Account locked due to multiple failed login attempts");
     }
 
-    private static int findIndex(List<User> list, String username) {  // Change to List<User>
-        for (int i = 0; i < list.size(); i++) {
-            User user = list.get(i);
-            if (user.getUserName().equals(username)) {
-                return i;
-            }
-        }
-        return -1;
-    }
-
-    private static void register(List<User> list) {  // Change to List<User>
-        // put user information into list
+    private static void register() {
         Scanner scanner = new Scanner(System.in);
 
-        // username set
         String userName;
         while (true) {
-            System.out.println("Please enter a username (between 3-15 characters):");
+            System.out.println("Please enter a username (3-15 characters):");
             userName = scanner.next();
 
-            boolean flag = CheckUserName(userName);
-            if (!flag) {
-                System.out.println("Not a valid username, please enter again");
+            if (!checkUserName(userName)) {
+                System.out.println("Invalid username. Please try again.");
                 continue;
             }
 
-            // check if the username is already used
-            boolean flag2 = contains(list, userName);
-            if (flag2) {
-                System.out.println("This username exists, please enter another one");
-            } else {
-                System.out.println("Username " + userName + " set successfully");
-                break;
+            try {
+                if (userDataManager.userExists(userName)) {
+                    System.out.println("Username already exists. Please enter a different one.");
+                } else {
+                    System.out.println("Username set successfully.");
+                    break;
+                }
+            } catch (SQLException e) {
+                logger.log(Level.SEVERE, "Error checking user existence", e);
+                System.out.println("Error during registration. Please try again.");
+                return;
             }
         }
 
-        // password set
-        String password;
+        String password = getPasswordInput(scanner);
+        if (password == null) return;
+
+        String phoneNumber;
+        while (true) {
+            System.out.println("Please enter a phone number (at least 9 digits):");
+            phoneNumber = scanner.next();
+
+            if (phoneNumber.length() >= 9 && phoneNumber.matches("\\d+")) {
+                System.out.println("Phone number set successfully.");
+                break;
+            } else {
+                System.out.println("Invalid phone number. Please try again.");
+            }
+        }
+
+        User user = new User(userName, password, phoneNumber);
+        try {
+            userDataManager.addUser(user);
+            System.out.println("Registration successful!");
+            logger.info("New user registered: " + userName);
+        } catch (SQLException e) {
+            logger.log(Level.SEVERE, "Error adding user to database", e);
+            System.out.println("Error during registration. Please try again.");
+        }
+    }
+
+    private static void forgetPassword() {
+        Scanner scanner = new Scanner(System.in);
+        System.out.println("Please enter your username: ");
+        String username = scanner.next();
+
+        try {
+            User user = userDataManager.getUserByUsername(username);
+            if (user == null) {
+                System.out.println("Username not found. Please register first.");
+                return;
+            }
+
+            System.out.println("Please enter your phone number: ");
+            String phoneNumber = scanner.next();
+
+            if (!user.getPhoneNumber().equals(phoneNumber)) {
+                System.out.println("Phone number does not match. Please try again.");
+                return;
+            }
+
+            String newPassword = getPasswordInput(scanner);
+            if (newPassword == null) return;
+
+            user.setPassword(newPassword);
+            userDataManager.updateUser(user);
+            System.out.println("Password updated successfully.");
+            logger.info("Password reset for user: " + username);
+        } catch (SQLException e) {
+            logger.log(Level.SEVERE, "Error during password reset", e);
+            System.out.println("Error resetting password. Please try again.");
+        }
+    }
+
+    private static String getPasswordInput(Scanner scanner) {
         Console console = System.console();
+        String password;
 
         while (true) {
             if (console != null) {
                 char[] passwordArray = console.readPassword("Please enter a password: ");
                 password = new String(passwordArray);
 
-                char[] againPasswordArray = console.readPassword("Recheck the password: ");
-                String checkPassword = new String(againPasswordArray);
+                char[] confirmPasswordArray = console.readPassword("Re-enter the password: ");
+                String confirmPassword = new String(confirmPasswordArray);
 
-                if (!password.equals(checkPassword)) {
-                    System.out.println("Passwords do not match, please enter again");
+                if (password.equals(confirmPassword)) {
+                    System.out.println("Password set successfully.");
+                    return password;
                 } else {
-                    System.out.println("Password set successfully");
-                    break;
+                    System.out.println("Passwords do not match. Please try again.");
                 }
             } else {
                 System.out.println("Please enter a password:");
                 password = scanner.next();
 
-                System.out.println("Recheck the password:");
-                String checkPassword = scanner.next();
+                System.out.println("Re-enter the password:");
+                String confirmPassword = scanner.next();
 
-                if (!password.equals(checkPassword)) {
-                    System.out.println("Passwords do not match, please enter again");
+                if (password.equals(confirmPassword)) {
+                    System.out.println("Password set successfully.");
+                    return password;
                 } else {
-                    System.out.println("Password set successfully");
-                    break;
+                    System.out.println("Passwords do not match. Please try again.");
                 }
             }
         }
-
-        // set phone number
-    // set phone number
-    String phoneNumber;
-    while (true) {
-        System.out.println();
-        System.out.println("Please enter a phone number (at least 9 digits):");
-        phoneNumber = scanner.next();
-
-        // Check if the phone number is at least 9 digits long and contains only digits
-        if (phoneNumber.length() >= 9 && phoneNumber.matches("\\d+")) {  
-            System.out.println("Phone number set successfully");
-            break;
-        } else {
-            System.out.println("Invalid phone number, please enter again");
-        }
     }
 
-    // add user to list
-    User user = new User(userName, password, phoneNumber);
-    list.add(user);
-    System.out.println("Registration successful!");
-    }
-
-
-    private static boolean CheckUserName(String userName) {
-        int len = userName.length();
-        if (len < 3 || len > 15) {
+    private static boolean checkUserName(String userName) {
+        if (userName.length() < 3 || userName.length() > 15) {
             return false;
         }
 
-        // check if username contains valid characters
-        for (int i = 0; i < userName.length(); i++) {
-            char s = userName.charAt(i);
-            if (!((s <= 'z' && s >= 'a') || (s <= 'Z' && s >= 'A') || (s <= '9' && s >= '0'))) {
+        for (char c : userName.toCharArray()) {
+            if (!Character.isLetterOrDigit(c)) {
                 return false;
             }
         }
 
-        // check if username contains at least one letter
-        int count = 0;
-        for (int i = 0; i < userName.length(); i++) {
-            char s = userName.charAt(i);
-            if ((s <= 'z' && s >= 'a') || (s <= 'Z' && s >= 'A')) {
-                count++;
-                break;  // improve efficiency
-            }
-        }
-        return count > 0;
-    }
-
-    private static void login(List<User> list) {  // Change to List<User>
-        Scanner sc = new Scanner(System.in);
-
-        for (int i = 0; i < 3; i++) {
-            System.out.println("Please enter a username:");
-            String username = sc.next();
-            // check if username exists
-            boolean flag = contains(list, username);
-            if (!flag) {
-                System.out.println("Username " + username + " does not exist, please register first.");
-                return;
-            }
-
-            System.out.println("Please enter the password:");
-            String password = sc.next();
-
-            while (true) {
-                String rightCaptcha = getCaptcha();
-                System.out.println();
-                System.out.println("The captcha is " + rightCaptcha);
-                System.out.println("Please enter the captcha:");
-                String captcha = sc.next();
-                if (captcha.equalsIgnoreCase(rightCaptcha)) {
-                    System.out.println("Correct captcha");
-                    break;
-                } else {
-                    System.out.println("Wrong captcha, please enter the new captcha:");
-                }
-            }
-
-            User userInfo = new User(username, password, null);
-            boolean result = checkUserInfo(list, userInfo);
-            if (result) {
-                System.out.println("Successful login");
-                StudentSystem ss = new StudentSystem();
-                ss.StartSystem();
-                break;
-            } else {
-                if (i == 2) {
-                    System.out.println("The account " + username + " is locked");
-                    return;
-                } else {
-                    System.out.println("Wrong username or password, you have " + (2 - i) + " attempts left");
-                }
-            }
-        }
-    }
-
-    private static boolean checkUserInfo(List<User> list, User userInfo) {
-        for (User user : list) {
-            if (user.getPassword().equals(userInfo.getPassword()) && user.getUserName().equals(userInfo.getUserName())) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    private static boolean contains(List<User> list, String userName) {
-        for (User user : list) {
-            if (user.getUserName().equals(userName)) {
-                return true;
-            }
-        }
-        return false;
+        return userName.matches(".*[a-zA-Z]+.*");
     }
 
     public static String getCaptcha() {
-        List<Character> list = new ArrayList<>();  // You can still use ArrayList here, no problem
+        List<Character> list = new ArrayList<>();
 
         for (int i = 0; i < 26; i++) {
             list.add((char) ('a' + i));
             list.add((char) ('A' + i));
         }
 
-        StringBuilder stringBuilder = new StringBuilder();
-        Random r = new Random();
+        StringBuilder captcha = new StringBuilder();
+        Random random = new Random();
         for (int i = 0; i < 4; i++) {
-            int index = r.nextInt(list.size());
-            char c = list.get(index);
-            stringBuilder.append(c);
+            int index = random.nextInt(list.size());
+            captcha.append(list.get(index));
         }
 
-        int a = r.nextInt(10);
-        stringBuilder.append(a);
+        captcha.append(random.nextInt(10));
 
-        // Shuffle the string content
-        char[] arr = stringBuilder.toString().toCharArray();
-        int index = r.nextInt(arr.length);
-        char temp = arr[index];
-        arr[index] = arr[arr.length - 1];
-        arr[arr.length - 1] = temp;
+        char[] captchaArray = captcha.toString().toCharArray();
+        int index = random.nextInt(captchaArray.length);
+        char temp = captchaArray[index];
+        captchaArray[index] = captchaArray[captchaArray.length - 1];
+        captchaArray[captchaArray.length - 1] = temp;
 
-        return new String(arr);
+        return new String(captchaArray);
     }
 }
