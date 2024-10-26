@@ -1,51 +1,29 @@
+/*
+ * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
+ * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
+ */
+package student_information_management_system;
 
-package student.information.management.system;
-
+/**
+ *
+ * @author 梁豪森
+ */
 public class Student extends Person {
     private int age;
-    private String courseEnrollment;  // New field for course enrollment
-    private String grades;            // New field for student grades
-    private String honors;            // New field for student honors
+
 
     // Constructor
-     public Student() {
+    public Student() {
     }
 
     // Parameterized constructor
-    public Student(String id, String name, int age, String address, String courseEnrollment, String grades, String honors) {
+    public Student(String id, String name, int age, String address) {
         super(id, name, address);
         this.age = age;
-        this.courseEnrollment = courseEnrollment;
-        this.grades = grades;
-        this.honors = honors;
+
     }
 
     // Getters and setters
-    public String getCourseEnrollment() {
-        return courseEnrollment;
-    }
-
-    public void setCourseEnrollment(String courseEnrollment) {
-        this.courseEnrollment = courseEnrollment;
-    }
-
-    public String getGrades() {
-        return grades;
-    }
-
-    public void setGrades(String grades) {
-        this.grades = grades;
-    }
-
-    public String getHonors() {
-        return honors;
-    }
-
-    public void setHonors(String honors) {
-        this.honors = honors;
-    }
-
-    // Existing getters and setters for age, etc.
     public int getAge() {
         return age;
     }

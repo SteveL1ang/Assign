@@ -1,5 +1,13 @@
-package student.information.management.system;
+/*
+ * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
+ * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
+ */
+package student_information_management_system;
 
+/**
+ *
+ * @author 梁豪森
+ */
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
@@ -9,9 +17,9 @@ import java.util.logging.Logger;
 public class UserDataManager {
     private static final Logger logger = Logger.getLogger(UserDataManager.class.getName());
 
-    
-     // Reads all users from the database.
-    
+
+    // Reads all users from the database.
+
     public List<User> readUsersFromDB() throws SQLException {
         List<User> users = new ArrayList<>();
         String sql = "SELECT * FROM Users";
@@ -29,9 +37,9 @@ public class UserDataManager {
         return users;
     }
 
-    
-     // Adds a new user to the database.
-     
+
+    // Adds a new user to the database.
+
     public void addUser(User newUser) throws SQLException {
         String sql = "INSERT INTO Users (userName, password, phoneNumber) VALUES (?, ?, ?)";
         try (Connection conn = DBManager.getConnection();
@@ -50,9 +58,9 @@ public class UserDataManager {
         }
     }
 
-    
-     // Updates an existing user's information in the database.
-   
+
+    // Updates an existing user's information in the database.
+
     public void updateUser(User user) throws SQLException {
         String sql = "UPDATE Users SET password = ?, phoneNumber = ? WHERE userName = ?";
         try (Connection conn = DBManager.getConnection();
@@ -71,9 +79,9 @@ public class UserDataManager {
         }
     }
 
-    
+
     // Deletes a user from the database.
-   
+
     public void deleteUser(String userName) throws SQLException {
         String sql = "DELETE FROM Users WHERE userName = ?";
         try (Connection conn = DBManager.getConnection();
@@ -90,9 +98,9 @@ public class UserDataManager {
         }
     }
 
-    
-     // Retrieves a single user from the database by username.
-   
+
+    // Retrieves a single user from the database by username.
+
     public User getUserByUsername(String userName) throws SQLException {
         String sql = "SELECT * FROM Users WHERE userName = ?";
         try (Connection conn = DBManager.getConnection();
@@ -110,9 +118,9 @@ public class UserDataManager {
         return null;
     }
 
-    
-     // Checks if a user exists in the database.
-     
+
+    // Checks if a user exists in the database.
+
     public boolean userExists(String userName) throws SQLException {
         String sql = "SELECT COUNT(*) FROM Users WHERE userName = ?";
         try (Connection conn = DBManager.getConnection();
@@ -130,9 +138,9 @@ public class UserDataManager {
         return false;
     }
 
-   
-     // Authenticates a user.
-    
+
+    // Authenticates a user.
+
     public boolean authenticateUser(String userName, String password) throws SQLException {
         String sql = "SELECT * FROM Users WHERE userName = ? AND password = ?";
         try (Connection conn = DBManager.getConnection();
